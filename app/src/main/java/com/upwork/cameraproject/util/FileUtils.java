@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 
@@ -128,4 +129,38 @@ public class FileUtils {
         }
     }
 
+    public static void makeBinaryExecutable(String binaryPath) {
+        try {
+            Process process = Runtime.getRuntime().exec("/system/bin/chmod 744 " + binaryPath);
+            process.waitFor();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String runBinary(String binaryPath) throws IOException, InterruptedException {
+        StringBuilder output = new StringBuilder();
+        BufferedReader reader = null;
+        try {
+            Process process = Runtime.getRuntime().exec(binaryPath);
+            reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            int read;
+            char[] buffer = new char[4096];
+            while ((read = reader.read(buffer)) > 0) {
+                output.append(buffer, 0, read);
+            }
+
+            closeBufferedReader(reader);
+
+            reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            while ((read = reader.read(buffer)) > 0) {
+                output.append(buffer, 0, read);
+            }
+
+            process.waitFor();
+        } finally {
+            closeBufferedReader(reader);
+        }
+        return output.toString();
+    }
 }
